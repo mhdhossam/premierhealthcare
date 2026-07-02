@@ -7,3 +7,4 @@ python-decouple
 gunicorn
 whitenoise
 psycopg2-binary
+python-dotenv
