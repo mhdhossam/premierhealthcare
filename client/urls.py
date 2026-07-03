@@ -5,11 +5,9 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 
 urlpatterns = [
+    path('token/', RoleTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('bookings/create/', CreateBookingView.as_view(), name='booking-create'),
     path('bookings/mine/', MyBookingsView.as_view(), name='booking-mine'),
     path('payments/webhook/', PaymobWebhookView.as_view(), name='paymob-webhook'),
-]
-urlpatterns = [
-    path('token/', RoleTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
