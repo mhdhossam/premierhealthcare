@@ -1,6 +1,9 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+import uuid
+from django.core.validators import MinValueValidator
+
 
 
 class Role(models.TextChoices):
@@ -82,3 +85,77 @@ class Patient(models.Model):
 
     def __str__(self):
         return self.user.username
+
+
+
+class DoctorAvailability(models.Model):
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='availabilities')
+    weekday = models.IntegerField(choices=[(i, d) for i, d in enumerate(
+        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])])
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    slot_duration_minutes = models.PositiveIntegerField(default=30)
+
+    class Meta:
+        unique_together = ('doctor', 'weekday', 'start_time')
+
+
+class BookingStatus(models.TextChoices):
+    PENDING_PAYMENT = 'pending_payment', 'Pending Payment'
+    CONFIRMED = 'confirmed', 'Confirmed'
+    CANCELLED = 'cancelled', 'Cancelled'
+    COMPLETED = 'completed', 'Completed'
+    EXPIRED = 'expired', 'Expired'
+
+
+class Booking(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='bookings')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='bookings')
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    status = models.CharField(max_length=20, choices=BookingStatus.choices,
+                               default=BookingStatus.PENDING_PAYMENT)
+    fee = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['doctor', 'date', 'start_time'],
+                condition=models.Q(status__in=['pending_payment', 'confirmed']),
+                name='unique_active_slot'
+            )
+        ]
+        indexes = [models.Index(fields=['doctor', 'date'])]
+
+    def __str__(self):
+        return f"{self.patient} -> {self.doctor} on {self.date} {self.start_time}"
+
+
+class PaymentStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
+    PAID = 'paid', 'Paid'
+    FAILED = 'failed', 'Failed'
+    REFUNDED = 'refunded', 'Refunded'
+
+
+class Payment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='payment')
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    currency = models.CharField(max_length=3, default='EGP')
+    status = models.CharField(max_length=20, choices=PaymentStatus.choices,
+                               default=PaymentStatus.PENDING)
+    paymob_order_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    paymob_transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    payment_token = models.TextField(blank=True, null=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    raw_webhook_payload = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.booking_id} - {self.status}"
