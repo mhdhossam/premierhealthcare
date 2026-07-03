@@ -169,9 +169,10 @@ REST_FRAMEWORK = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-PAYMOB_API_KEY = "YOUR_API_KEY"
-PAYMOB_INTEGRATION_ID = 123456
-PAYMOB_IFRAME_ID = 654321
+PAYMOB_API_KEY = os.getenv('PAYMOB_API_KEY')
+PAYMOB_INTEGRATION_ID = os.getenv('PAYMOB_INTEGRATION_ID')
+PAYMOB_HMAC = os.getenv('PAYMOB_HMAC')
+PAYMOB_IFRAME_ID = os.getenv('PAYMOB_IFRAME_ID')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
