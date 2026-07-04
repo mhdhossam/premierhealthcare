@@ -171,7 +171,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 PAYMOB_API_KEY = os.getenv('PAYMOB_API_KEY')
 PAYMOB_INTEGRATION_ID = os.getenv('PAYMOB_INTEGRATION_ID')
-PAYMOB_HMAC = os.getenv('PAYMOB_HMAC')
+PAYMOB_HMAC_SECRET = os.getenv('PAYMOB_HMAC_SECRET')
 PAYMOB_IFRAME_ID = os.getenv('PAYMOB_IFRAME_ID')
 
 # Default primary key field type
