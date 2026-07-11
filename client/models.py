@@ -3,7 +3,48 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 import uuid
 from django.core.validators import MinValueValidator
+from django.conf import settings
 
+
+class NotificationType(models.TextChoices):
+    BOOKING_CREATED = "booking_created", "Booking Created"
+    BOOKING_CONFIRMED = "booking_confirmed", "Booking Confirmed"
+    BOOKING_CANCELLED = "booking_cancelled", "Booking Cancelled"
+    PAYMENT_FAILED = "payment_failed", "Payment Failed"
+
+
+class Notification(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        db_index=True,
+    )
+    notification_type = models.CharField(
+        max_length=32, choices=NotificationType.choices, db_index=True
+    )
+    title = models.CharField(max_length=150)
+    message = models.CharField(max_length=500)
+    booking = models.ForeignKey(
+        "Booking",
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        null=True,
+        blank=True,
+    )
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        # covers the hot query: "give me this user's unread, newest first"
+        indexes = [
+            models.Index(fields=["recipient", "is_read", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.notification_type} -> recipient={self.recipient_id}"
 
 
 class Role(models.TextChoices):
@@ -42,6 +83,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, unique=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.PATIENT)
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -53,6 +96,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+    
+    def get_full_name(self):
+        full = f"{self.first_name} {self.last_name}".strip()
+        return full or self.username
 
     @property
     def is_admin(self):

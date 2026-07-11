@@ -2,7 +2,8 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from datetime import datetime, timedelta
-from .models import Booking, DoctorAvailability, Doctor
+from .models import Booking, DoctorAvailability, Doctor,Notification
+
 
 class RoleTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -11,7 +12,6 @@ class RoleTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['role'] = user.role
         token['is_verified'] = user.is_verified
         return token
-
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):
@@ -54,4 +54,13 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = ['id', 'patient', 'doctor', 'date', 'start_time', 'end_time',
                   'status', 'fee', 'notes', 'created_at']
+        read_only_fields = fields
+
+# serializers.py
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ["id", "notification_type", "title", "message", "booking", "is_read", "created_at"]
         read_only_fields = fields

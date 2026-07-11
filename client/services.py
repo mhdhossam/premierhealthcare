@@ -1,6 +1,7 @@
 import requests
 from django.conf import settings
-
+from .models import Booking,Notification, NotificationType
+from django.db import transaction
 
 class PaymobService:
     BASE_URL = "https://accept.paymob.com/api"
@@ -100,3 +101,118 @@ class PaymobService:
             self.hmac_secret.encode(), concat_str.encode(), hashlib.sha512
         ).hexdigest()
         return hmac.compare_digest(computed, received_hmac)
+
+
+class NotificationService:
+    """
+    Centralized notification dispatch for booking lifecycle events.
+    No view/request dependency — safe to call from webhooks, signals,
+    Celery tasks, or management commands.
+    """
+
+    @staticmethod
+    def _recipients(booking: Booking):
+        return booking.patient.user, booking.doctor.user
+
+    @classmethod
+    def notify_booking_created(cls, booking: Booking):
+        patient_user, doctor_user = cls._recipients(booking)
+        Notification.objects.bulk_create([
+            Notification(
+                recipient=patient_user,
+                notification_type=NotificationType.BOOKING_CREATED,
+                title="Booking submitted",
+                message=(
+                    f"Your booking with Dr. {doctor_user.get_full_name()} "
+                    f"on {booking.date} is pending payment."
+                ),
+                booking=booking,
+            ),
+            Notification(
+                recipient=doctor_user,
+                notification_type=NotificationType.BOOKING_CREATED,
+                title="New booking request",
+                message=(
+                    f"{patient_user.get_full_name()} requested a booking "
+                    f"on {booking.date}."
+                ),
+                booking=booking,
+            ),
+        ])
+
+    @classmethod
+    def notify_booking_confirmed(cls, booking: Booking):
+        patient_user, doctor_user = cls._recipients(booking)
+        Notification.objects.bulk_create([
+            Notification(
+                recipient=patient_user,
+                notification_type=NotificationType.BOOKING_CONFIRMED,
+                title="Payment confirmed",
+                message=(
+                    f"Your booking with Dr. {doctor_user.get_full_name()} "
+                    f"on {booking.date} is confirmed."
+                ),
+                booking=booking,
+            ),
+            Notification(
+                recipient=doctor_user,
+                notification_type=NotificationType.BOOKING_CONFIRMED,
+                title="Booking confirmed",
+                message=(
+                    f"{patient_user.get_full_name()}'s booking on "
+                    f"{booking.date} is paid and confirmed."
+                ),
+                booking=booking,
+            ),
+        ])
+        cls._push_realtime(patient_user.id, doctor_user.id, booking)
+
+    @classmethod
+    def notify_booking_cancelled(cls, booking: Booking, reason: str = "Payment failed"):
+        patient_user, doctor_user = cls._recipients(booking)
+        Notification.objects.bulk_create([
+            Notification(
+                recipient=patient_user,
+                notification_type=NotificationType.PAYMENT_FAILED,
+                title="Booking cancelled",
+                message=f"Your booking on {booking.date} was cancelled: {reason}.",
+                booking=booking,
+            ),
+            Notification(
+                recipient=doctor_user,
+                notification_type=NotificationType.BOOKING_CANCELLED,
+                title="Booking cancelled",
+                message=(
+                    f"Booking with {patient_user.get_full_name()} on "
+                    f"{booking.date} was cancelled: {reason}."
+                ),
+                booking=booking,
+            ),
+        ])
+
+    @staticmethod
+    def _push_realtime(patient_user_id, doctor_user_id, booking):
+        """
+        Best-effort WebSocket push via Django Channels, if configured.
+        DB notification is already persisted above — this is purely
+        a "wake up and refetch" signal, so failures here are swallowed.
+        """
+        try:
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+
+            layer = get_channel_layer()
+            if not layer:
+                return
+            for uid in (patient_user_id, doctor_user_id):
+                async_to_sync(layer.group_send)(
+                    f"notifications_{uid}",
+                    {
+                        "type": "notify",
+                        "booking_id": str(booking.id),
+                        "status": booking.status,
+                    },
+                )
+        except Exception:
+            # Channel layer down/unconfigured shouldn't break payment flow
+            pass
