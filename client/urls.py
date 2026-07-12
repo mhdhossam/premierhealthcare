@@ -1,7 +1,13 @@
 # urls.py
 from django.urls import path
-from .views import NotificationListView, RoleTokenObtainPairView, CreateBookingView, PaymobWebhookView, MyBookingsView, MarkNotificationReadView,MarkAllNotificationsReadView 
+from .views import NotificationListView, RoleTokenObtainPairView, CreateBookingView, PaymobWebhookView, MyBookingsView, MarkNotificationReadView,MarkAllNotificationsReadView,AdminUserViewSet 
 from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r"users", AdminUserViewSet, basename="admin-user")
+
+urlpatterns = router.urls
 
 
 urlpatterns = [
