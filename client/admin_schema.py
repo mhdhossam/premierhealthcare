@@ -9,7 +9,63 @@ from .models import Doctor, Patient, DoctorAvailability, Booking
 from apps.schema.registry import registry
 from apps.schema.base import AdminSchema, SchemaField
 
+# admin_schema.py — add alongside your existing registrations
 
+from .models import Department, Service, Branch, BranchService, DoctorBranch, DoctorService
+
+from apps.schema.registry import registry
+from apps.schema.base import AdminSchema
+
+
+@registry.register
+class DepartmentSchema(AdminSchema):
+    model = Department
+    endpoint = "/api/departments/"
+    list_display = ["id", "name", "slug", "is_active"]
+    search_fields = ["name", "description"]
+    ordering = ["name"]
+
+
+@registry.register
+class ServiceSchema(AdminSchema):
+    model = Service
+    endpoint = "/api/services/"
+    list_display = ["id", "name", "department", "duration_minutes", "default_fee", "is_active"]
+    search_fields = ["name", "description"]
+    ordering = ["department", "name"]
+
+
+@registry.register
+class BranchSchema(AdminSchema):
+    model = Branch
+    endpoint = "/api/branches/"
+    list_display = ["id", "name", "city", "phone", "is_active"]
+    search_fields = ["name", "city", "address"]
+    ordering = ["name"]
+
+
+@registry.register
+class BranchServiceSchema(AdminSchema):
+    model = BranchService
+    endpoint = "/api/branch-services/"
+    list_display = ["id", "branch", "service", "fee_override"]
+    ordering = ["branch"]
+
+
+@registry.register
+class DoctorBranchSchema(AdminSchema):
+    model = DoctorBranch
+    endpoint = "/api/doctor-branches/"
+    list_display = ["id", "doctor", "branch"]
+    ordering = ["doctor"]
+
+
+@registry.register
+class DoctorServiceSchema(AdminSchema):
+    model = DoctorService
+    endpoint = "/api/doctor-services/"
+    list_display = ["id", "doctor", "service", "fee_override"]
+    ordering = ["doctor"]
 @registry.register
 class DoctorSchema(AdminSchema):
     model = Doctor
@@ -59,7 +115,7 @@ class BookingSchema(AdminSchema):
 class UserSchema(AdminSchema):
     model = CustomUser
     endpoint = "/api/users/"
-    list_display = ["id", "username", "email", "is_staff", "is_active"]
+    list_display = ["id", "username", "email", "role","is_staff", "is_active"]
     search_fields = ["username", "email"]
     ordering = ["-id"]
     exclude = ["password", "user_permissions", "groups"]

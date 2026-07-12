@@ -273,7 +273,7 @@ class SchemaRegistry:
                 "name": qualified_name,
                 "endpoint": cls.endpoint,
                 "label": cls.model.__name__,
-                "url": f"/admin/{qualified_name.lower()}",
+                "url": f"/admin/{cls.model.__name__.lower()}",
             }
             for qualified_name, cls in sorted(self._registry.items())
         ]

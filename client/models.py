@@ -1,51 +1,14 @@
+# models.py
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-import uuid
 from django.core.validators import MinValueValidator
+from django.utils.text import slugify
 from django.conf import settings
+import uuid
 
 
-class NotificationType(models.TextChoices):
-    BOOKING_CREATED = "booking_created", "Booking Created"
-    BOOKING_CONFIRMED = "booking_confirmed", "Booking Confirmed"
-    BOOKING_CANCELLED = "booking_cancelled", "Booking Cancelled"
-    PAYMENT_FAILED = "payment_failed", "Payment Failed"
-
-
-class Notification(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    recipient = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="notifications",
-        db_index=True,
-    )
-    notification_type = models.CharField(
-        max_length=32, choices=NotificationType.choices, db_index=True
-    )
-    title = models.CharField(max_length=150)
-    message = models.CharField(max_length=500)
-    booking = models.ForeignKey(
-        "Booking",
-        on_delete=models.CASCADE,
-        related_name="notifications",
-        null=True,
-        blank=True,
-    )
-    is_read = models.BooleanField(default=False, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-        # covers the hot query: "give me this user's unread, newest first"
-        indexes = [
-            models.Index(fields=["recipient", "is_read", "-created_at"]),
-        ]
-
-    def __str__(self):
-        return f"{self.notification_type} -> recipient={self.recipient_id}"
-
+# ─── Roles / Users ───────────────────────────────────────────────────────
 
 class Role(models.TextChoices):
     ADMIN = 'admin', _('Admin')
@@ -96,7 +59,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
-    
+
     def get_full_name(self):
         full = f"{self.first_name} {self.last_name}".strip()
         return full or self.username
@@ -114,14 +77,130 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.role == Role.PATIENT
 
 
+# ─── Department / Service / Branch ───────────────────────────────────────
+
+class Department(models.Model):
+    """Top-level category a patient starts from, e.g. 'Cardiology'."""
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(unique=True, blank=True)
+    description = models.TextField(blank=True)
+    icon = models.CharField(max_length=50, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class Service(models.Model):
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="services")
+    name = models.CharField(max_length=150)
+    slug = models.SlugField(blank=True)
+    description = models.TextField(blank=True)
+    duration_minutes = models.PositiveIntegerField(default=30)
+    default_fee = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["department", "name"]
+        constraints = [
+            models.UniqueConstraint(fields=["department", "slug"], name="unique_service_slug_per_department"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.department.name})"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class Branch(models.Model):
+    name = models.CharField(max_length=150)
+    address = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    phone = models.CharField(max_length=20, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    services = models.ManyToManyField(Service, through="BranchService", related_name="branches")
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name_plural = "branches"
+
+    def __str__(self):
+        return f"{self.name} — {self.city}"
+
+
+class BranchService(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    fee_override = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["branch", "service"], name="unique_branch_service"),
+        ]
+
+    def __str__(self):
+        return f"{self.branch.name} — {self.service.name}"
+
+    @property
+    def effective_fee(self):
+        return self.fee_override if self.fee_override is not None else self.service.default_fee
+
+
+# ─── Doctor / Patient ─────────────────────────────────────────────────────
+
 class Doctor(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='doctor_profile')
     specialization = models.CharField(max_length=100)
     license_number = models.CharField(max_length=50, unique=True)
     bio = models.TextField(blank=True)
+    branches = models.ManyToManyField(Branch, through="DoctorBranch", related_name="doctors")
+    services = models.ManyToManyField(Service, through="DoctorService", related_name="doctors")
 
     def __str__(self):
         return f"Dr. {self.user.username}"
+
+
+class DoctorBranch(models.Model):
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["doctor", "branch"], name="unique_doctor_branch"),
+        ]
+
+    def __str__(self):
+        return f"{self.doctor} @ {self.branch}"
+
+
+class DoctorService(models.Model):
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    fee_override = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["doctor", "service"], name="unique_doctor_service"),
+        ]
+
+    def __str__(self):
+        return f"{self.doctor} — {self.service.name}"
 
 
 class Patient(models.Model):
@@ -134,9 +213,9 @@ class Patient(models.Model):
         return self.user.username
 
 
-
 class DoctorAvailability(models.Model):
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='availabilities')
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='availabilities')
     weekday = models.IntegerField(choices=[(i, d) for i, d in enumerate(
         ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])])
     start_time = models.TimeField()
@@ -144,8 +223,18 @@ class DoctorAvailability(models.Model):
     slot_duration_minutes = models.PositiveIntegerField(default=30)
 
     class Meta:
-        unique_together = ('doctor', 'weekday', 'start_time')
+        constraints = [
+            models.UniqueConstraint(
+                fields=["doctor", "branch", "weekday", "start_time"],
+                name="unique_doctor_branch_slot",
+            ),
+        ]
 
+    def __str__(self):
+        return f"{self.doctor} @ {self.branch} — {self.get_weekday_display()} {self.start_time}"
+
+
+# ─── Booking / Payment ────────────────────────────────────────────────────
 
 class BookingStatus(models.TextChoices):
     PENDING_PAYMENT = 'pending_payment', 'Pending Payment'
@@ -159,6 +248,8 @@ class Booking(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='bookings')
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='bookings')
+    service = models.ForeignKey(Service, on_delete=models.PROTECT, related_name='bookings')
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT, related_name='bookings')
     date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -206,3 +297,36 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.booking_id} - {self.status}"
+
+
+# ─── Notifications ─────────────────────────────────────────────────────────
+
+class NotificationType(models.TextChoices):
+    BOOKING_CREATED = "booking_created", "Booking Created"
+    BOOKING_CONFIRMED = "booking_confirmed", "Booking Confirmed"
+    BOOKING_CANCELLED = "booking_cancelled", "Booking Cancelled"
+    PAYMENT_FAILED = "payment_failed", "Payment Failed"
+
+
+class Notification(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="notifications", db_index=True,
+    )
+    notification_type = models.CharField(max_length=32, choices=NotificationType.choices, db_index=True)
+    title = models.CharField(max_length=150)
+    message = models.CharField(max_length=500)
+    booking = models.ForeignKey(
+        "Booking", on_delete=models.CASCADE, related_name="notifications",
+        null=True, blank=True,
+    )
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["recipient", "is_read", "-created_at"])]
+
+    def __str__(self):
+        return f"{self.notification_type} -> recipient={self.recipient_id}"

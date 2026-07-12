@@ -254,10 +254,10 @@ function Sidebar({ schemas, currentModel }) {
       <div style={S.sidebarSection}>
         <div style={S.sidebarSectionLabel}>Models</div>
         {schemas?.map(s => {
-          const active = currentModel?.toLowerCase() === s.name.toLowerCase();
+          const active = currentModel?.toLowerCase() === s.label.toLowerCase();
           return (
             <button key={s.name} style={{...S.navItem, ...(active ? S.navItemActive : {})}}
-              onClick={() => navigate(`/admin/${s.name.toLowerCase()}`)}>
+              onClick={() => navigate(`/admin/${s.label.toLowerCase()}`)}>
               <span style={S.navDot} />
               <span>{s.label}</span>
               {active && <span style={{marginLeft:"auto",opacity:.5}}>{Icon.chevronRight}</span>}
@@ -905,7 +905,7 @@ function Dashboard({ schemas }) {
           <div style={S.dashCardArrow}>{Icon.chevronRight}</div>
         </button>
         {schemas?.map(s => (
-          <button key={s.name} style={S.dashCard} onClick={() => navigate(`/admin/${s.name.toLowerCase()}`)}>
+          <button key={s.label} style={S.dashCard} onClick={() => navigate(`/admin/${s.label.toLowerCase()}`)}>
             <div style={S.dashCardIcon}>{Icon.db}</div>
             <div style={S.dashCardName}>{s.label}</div>
             <div style={S.dashCardSub}>View &amp; manage records</div>

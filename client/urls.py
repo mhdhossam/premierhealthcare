@@ -22,3 +22,17 @@ urlpatterns = [
     path("notifications/<uuid:pk>/read/", MarkNotificationReadView.as_view(), name="notification-mark-read"),
     path("notifications/read-all/", MarkAllNotificationsReadView.as_view(), name="notification-mark-all-read"),
 ]+ router.urls
+# urls.py — add to your existing urlpatterns list (append, don't reassign — see the earlier urlpatterns overwrite bug)
+
+from .wizard_views import (
+    DepartmentListView, ServiceListView, BranchListView,
+    DoctorListView, AvailableSlotsView,
+)
+
+urlpatterns += [
+    path("wizard/departments/", DepartmentListView.as_view(), name="wizard-departments"),
+    path("wizard/departments/<int:department_id>/services/", ServiceListView.as_view(), name="wizard-services"),
+    path("wizard/services/<int:service_id>/branches/", BranchListView.as_view(), name="wizard-branches"),
+    path("wizard/branches/<int:branch_id>/doctors/", DoctorListView.as_view(), name="wizard-doctors"),
+    path("wizard/doctors/<int:doctor_id>/slots/", AvailableSlotsView.as_view(), name="wizard-slots"),
+]
