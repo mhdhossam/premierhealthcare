@@ -18,11 +18,6 @@ from datetime import datetime, timedelta
 
 
 
-
-
-
-
-
 class DepartmentListView(APIView):
     """Step 1: GET /api/wizard/departments/"""
     permission_classes = [AllowAny]

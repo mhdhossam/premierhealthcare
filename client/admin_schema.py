@@ -1,20 +1,8 @@
-from .models import CustomUser
-
 from apps.schema.registry import registry
 from apps.schema.base import AdminSchema, SchemaField
+from .models import *
 
 
-from .models import Doctor, Patient, DoctorAvailability, Booking
-
-from apps.schema.registry import registry
-from apps.schema.base import AdminSchema, SchemaField
-
-# admin_schema.py — add alongside your existing registrations
-
-from .models import Department, Service, Branch, BranchService, DoctorBranch, DoctorService
-
-from apps.schema.registry import registry
-from apps.schema.base import AdminSchema
 
 
 @registry.register
