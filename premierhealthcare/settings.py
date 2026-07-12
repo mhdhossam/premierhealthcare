@@ -45,11 +45,17 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework',
     'corsheaders',
-
+    "rest_framework_simplejwt.token_blacklist",
 
 
     #project apps
     'client',
+    "apps",
+    "apps.products",
+    "apps.users",
+    "apps.files",          # ← new
+    "apps.schema",
+    "core",
 
 ]
 
@@ -157,18 +163,30 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# ── DRF ──────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
+        "rest_framework.permissions.IsAdminUser",
     ),
+    "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardResultsPagination",
+    "PAGE_SIZE": 25,
+    "DEFAULT_FILTER_BACKENDS": [
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
 }
+
 # Media
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'core.staticfiles.NpmBuildFinder',   # your custom finder
+]
 
 EMAIL_USE_TLS = True  
 EMAIL_HOST = os.getenv('EMAIL_HOST')  
