@@ -1,4 +1,4 @@
-from rest_framework_simplejwt.views import TokenObtainPairView,TokenVerifyView
+from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from .serializers import RoleTokenObtainPairSerializer, NotificationSerializer,BookingCreateSerializer, BookingSerializer,AdminTokenObtainPairSerializer, AdminUserSerializer
@@ -190,10 +190,10 @@ class AdminUserViewSet(AdminModelViewSet):
     CRUD for admin user management.
     Only superusers can manage other users.
     """
-    queryset = CustomUser.objects.filter(is_staff=True).order_by("-date_joined")
+    queryset = CustomUser.objects.filter(is_staff=True).order_by("-id")
     serializer_class = AdminUserSerializer
     search_fields = ["username", "email", "first_name", "last_name"]
-    ordering_fields = ["id", "username", "date_joined", "last_login"]
+    ordering_fields = ["id", "username"]
 
     def get_permissions(self):
         # Creating/deleting users requires superuser

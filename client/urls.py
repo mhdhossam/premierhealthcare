@@ -7,7 +7,7 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 router.register(r"users", AdminUserViewSet, basename="admin-user")
 
-urlpatterns = router.urls
+
 
 
 urlpatterns = [
@@ -21,4 +21,4 @@ urlpatterns = [
     path("notifications/", NotificationListView.as_view(), name="notification-list"),
     path("notifications/<uuid:pk>/read/", MarkNotificationReadView.as_view(), name="notification-mark-read"),
     path("notifications/read-all/", MarkAllNotificationsReadView.as_view(), name="notification-mark-all-read"),
-]
+]+ router.urls

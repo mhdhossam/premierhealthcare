@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 
 // ─── Config ──────────────────────────────────────────────────────────────
-const BASE_URL = "";
+const BASE_URL = "http://localhost:8000";
 const TOKEN_KEY = "admin_access";
 const REFRESH_KEY = "admin_refresh";
 

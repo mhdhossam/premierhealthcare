@@ -2,8 +2,8 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from datetime import datetime, timedelta
-from .models import Booking, DoctorAvailability,Notification
-from.models import CustomUser
+from .models import Booking, DoctorAvailability,Notification,CustomUser
+
 
 class RoleTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -131,10 +131,10 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_superuser",
             "is_active",
-            "date_joined",
-            "last_login",
+           
+            
         ]
-        read_only_fields = ["id", "date_joined", "last_login"]
+        read_only_fields = ["id", "is_superuser"]
 
     def validate(self, attrs):
         # Prevent demoting your own account via API

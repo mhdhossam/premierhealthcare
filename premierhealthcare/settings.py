@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'client',
     "apps",
     "apps.products",
-    "apps.users",
+    
     "apps.files",          # ← new
     "apps.schema",
     "core",
@@ -182,6 +182,7 @@ REST_FRAMEWORK = {
 # Media
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
