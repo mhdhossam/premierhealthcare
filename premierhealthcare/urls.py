@@ -11,7 +11,7 @@ urlpatterns = [
     path('api/', include('client.urls')),
 
 
-    path("django-admin/", admin.site.urls),
+   
 
     # Auth
     path("api/auth/login/",   AdminTokenObtainPairView.as_view(), name="token_obtain_pair"),
