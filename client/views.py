@@ -13,20 +13,13 @@ from .models import *
 from .permissions import IsPatient
 from .services import PaymobService,NotificationService
 from core.viewsets import AdminModelViewSet
-
-
-
-# views.py — updated CreateBookingView
-
-from .models import DoctorService, BranchService
-# wizard_views.py
 from datetime import datetime, timedelta
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from django.utils import timezone
 
-from .models import Department, Service, Branch, Doctor, DoctorAvailability, Booking
+
+
+
+
+
 
 
 

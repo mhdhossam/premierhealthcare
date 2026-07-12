@@ -2,7 +2,7 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from datetime import datetime, timedelta
-from .models import Booking, DoctorAvailability,Notification,CustomUser
+from .models import *
 
 
 class RoleTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -13,9 +13,6 @@ class RoleTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['is_verified'] = user.is_verified
         return token
 
-# wizard_serializers.py
-from rest_framework import serializers
-from .models import Department, Service, Branch, Doctor, DoctorAvailability, BranchService, DoctorService
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
