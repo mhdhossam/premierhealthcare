@@ -24,7 +24,7 @@ urlpatterns = [
 ]+ router.urls
 # urls.py — add to your existing urlpatterns list (append, don't reassign — see the earlier urlpatterns overwrite bug)
 
-from .wizard_views import (
+from .views import (
     DepartmentListView, ServiceListView, BranchListView,
     DoctorListView, AvailableSlotsView,
 )

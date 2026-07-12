@@ -1,7 +1,7 @@
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-from .serializers import RoleTokenObtainPairSerializer, NotificationSerializer,BookingCreateSerializer, BookingSerializer,AdminTokenObtainPairSerializer, AdminUserSerializer
+from .serializers import *
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
-from .models import Booking, Payment, BookingStatus, PaymentStatus, Doctor, Notification , CustomUser
+from .models import *
 from .permissions import IsPatient
 from .services import PaymobService,NotificationService
 from core.viewsets import AdminModelViewSet
@@ -27,10 +27,7 @@ from rest_framework.permissions import AllowAny
 from django.utils import timezone
 
 from .models import Department, Service, Branch, Doctor, DoctorAvailability, Booking
-from .wizard_serializers import (
-    DepartmentSerializer, ServiceSerializer, BranchSerializer,
-    DoctorPublicSerializer, AvailableSlotSerializer,
-)
+
 
 
 class DepartmentListView(APIView):
