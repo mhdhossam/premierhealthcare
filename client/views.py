@@ -1,5 +1,7 @@
-from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import RoleTokenObtainPairSerializer, NotificationSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView,TokenVerifyView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+from .serializers import RoleTokenObtainPairSerializer, NotificationSerializer,BookingCreateSerializer, BookingSerializer,AdminTokenObtainPairSerializer, AdminUserSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -7,13 +9,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
-
-from .models import Booking, Payment, BookingStatus, PaymentStatus, Doctor
-from .serializers import BookingCreateSerializer, BookingSerializer
+from .models import Booking, Payment, BookingStatus, PaymentStatus, Doctor, Notification , CustomUser
 from .permissions import IsPatient
-from .services import PaymobService
-from .services import NotificationService
-from .models import Notification
+from .services import PaymobService,NotificationService
+from core.viewsets import AdminModelViewSet
+
 
 
 class CreateBookingView(APIView):
@@ -153,3 +153,52 @@ class MarkAllNotificationsReadView(APIView):
             recipient=request.user, is_read=False
         ).update(is_read=True)
         return Response(status=status.HTTP_200_OK)
+    
+
+class AdminTokenObtainPairView(TokenObtainPairView):
+    """Login endpoint — returns access + refresh + user profile."""
+    serializer_class = AdminTokenObtainPairSerializer
+
+
+# class AdminTokenVerifyView(TokenVerifyView):
+#     """Verify token validity. Returns 200 if valid, 401 if not."""
+#     pass
+
+
+class AdminLogoutView(APIView):
+    """
+    Blacklists the refresh token on logout.
+    Requires: { "refresh": "<token>" } in body.
+    """
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response(
+                {"error": "Refresh token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+        except TokenError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminUserViewSet(AdminModelViewSet):
+    """
+    CRUD for admin user management.
+    Only superusers can manage other users.
+    """
+    queryset = CustomUser.objects.filter(is_staff=True).order_by("-date_joined")
+    serializer_class = AdminUserSerializer
+    search_fields = ["username", "email", "first_name", "last_name"]
+    ordering_fields = ["id", "username", "date_joined", "last_login"]
+
+    def get_permissions(self):
+        # Creating/deleting users requires superuser
+        from rest_framework.permissions import IsAdminUser
+        from core.permissions import IsSuperUser
+        if self.action in ("create", "destroy"):
+            return [IsSuperUser()]
+        return [IsAdminUser()]    
