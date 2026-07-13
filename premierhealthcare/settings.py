@@ -103,12 +103,12 @@ WSGI_APPLICATION = 'premierhealthcare.wsgi.application'
 AUTH_USER_MODEL = "client.CustomUser"
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "postgres",
-        "USER": "postgres.tbmiqvflipjxrdqhhchp",
-        "PASSWORD": "MOHAMEDhossam123",
-        "HOST": "aws-0-eu-central-1.pooler.supabase.com",
-        "PORT": "5432",
+        "ENGINE": os.getenv('DATBASE_ENGINE'),
+        "NAME": os.getenv('DATABASE_NAME'),
+        "USER": os.getenv('DATABASE_USER'),
+        "PASSWORD": os.getenv('DATABASE_PASSWORD'),
+        "HOST": os.getenv('DATABASE_HOST'),
+        "PORT": os.getenv('DATABASE_PORT'),
     }
 }
 
