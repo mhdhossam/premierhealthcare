@@ -9,11 +9,10 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN python manage.py makemigrations && python manage.py migrate
-
-RUN python manage.py collectstatic --noinput
 
 COPY . .
+
+
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
