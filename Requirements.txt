@@ -8,4 +8,4 @@ gunicorn
 whitenoise
 python-dotenv
 requests 
-psycopg
+psycopg[binary]
