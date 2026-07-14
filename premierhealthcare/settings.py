@@ -103,7 +103,7 @@ WSGI_APPLICATION = 'premierhealthcare.wsgi.application'
 AUTH_USER_MODEL = "client.CustomUser"
 DATABASES = {
     "default": {
-        "ENGINE": os.getenv('DATBASE_ENGINE'),
+        "ENGINE": os.getenv('DATABASE_ENGINE'),
         "NAME": os.getenv('DATABASE_NAME'),
         "USER": os.getenv('DATABASE_USER'),
         "PASSWORD": os.getenv('DATABASE_PASSWORD'),

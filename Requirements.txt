@@ -7,3 +7,5 @@ python-decouple
 gunicorn
 whitenoise
 python-dotenv
+requests 
+psycopg
