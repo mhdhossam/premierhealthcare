@@ -1,25 +1,29 @@
 name: premier_health_care
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: premier-healthcare-backend
+    container_name: premier-healthcare-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/premierhealthcare
 
-  
-  app:
-   build:
-     context: .
-     dockerfile: Dockerfile
-   image: premier-healthcare
-   container_name: premier-healthcare-container
-   ports: 
-    - "8000:8000"
-   
-   env_file: 
-     - .env
-   
-   volumes:
-    - .:/premierhealthcare 
-
-
-
-
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: premier-healthcare-frontend
+    container_name: premier-healthcare-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/frontend
+      - /frontend/node_modules
 
 
 
